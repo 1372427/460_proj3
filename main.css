@@ -1,0 +1,77 @@
+#barInfo {
+    display: block;
+    position: absolute;
+    padding: 5px;
+    border-style: solid;
+    border-color: black;
+    background-color: white;
+  }
+  
+  .hidden {
+    opacity: 0;
+    display: none;
+  }
+
+  svg{
+    display: block;
+    box-shadow: 10px 10px 5px grey;
+    background-color: white;
+    margin: auto;
+    margin-bottom: 50px;
+    margin-top: 10px;
+  }
+
+  #header {
+    min-height: 5vh;
+    text-align: center;
+    background-color: #d6eaff;
+    margin: 0px;
+    padding: 10px;
+    color:navy;
+  }
+
+
+
+  #wrapper {
+    background-color: #f8fbff;
+  
+  }
+
+  #main {
+    padding: 20px;
+  }
+
+  .line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 3;
+  }
+  
+#concl {
+  background-color: #d6eaff ;
+  color: black;
+  min-height: 40vh;
+  padding: 10px;
+  padding-left: 20px;
+}
+#state{
+  display: block;
+  margin: auto;
+}
+
+.legend-rect {
+  display: inline-block;
+  height: 10px;
+  margin-right: .5em;
+  width: 10px;
+}
+
+button {
+  display: block;
+  margin: auto;
+  margin-top: 10px;
+}
+
+body{
+  font-family: 'Roboto Mono', monospace;
+}
