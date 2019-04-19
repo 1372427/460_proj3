@@ -14,20 +14,8 @@
 
   svg{
     display: block;
-    box-shadow: 10px 10px 5px grey;
     background-color: white;
     margin: auto;
-    margin-bottom: 50px;
-    margin-top: 10px;
-  }
-
-  #header {
-    min-height: 5vh;
-    text-align: center;
-    background-color: #d6eaff;
-    margin: 0px;
-    padding: 10px;
-    color:navy;
   }
 
 
@@ -37,8 +25,13 @@
   
   }
 
-  #main {
-    padding: 20px;
+  #floatingBlock{
+      position: absolute;
+      left: 20px;
+      width: 200px;
+      height: 100px;
+      border: 3px solid black;
+
   }
 
   .line {
@@ -47,13 +40,6 @@
     stroke-width: 3;
   }
   
-#concl {
-  background-color: #d6eaff ;
-  color: black;
-  min-height: 40vh;
-  padding: 10px;
-  padding-left: 20px;
-}
 #state{
   display: block;
   margin: auto;

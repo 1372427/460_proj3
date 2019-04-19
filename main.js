@@ -1,5 +1,30 @@
-let w = 800;
-let h = 600;
+let w = getWidth()-20;
+let h = getHeight()-20;
+let h1 = 200;
+let h2 = getHeight() - 200;
+let svg;
+let floatingDiv;
+//getWidth and getHeight from https://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
+function getWidth() {
+  return Math.max(
+    document.body.scrollWidth,
+    document.documentElement.scrollWidth,
+    document.body.offsetWidth,
+    document.documentElement.offsetWidth,
+    document.documentElement.clientWidth
+  );
+}
+
+function getHeight() {
+  return Math.max(
+    document.body.scrollHeight,
+    document.documentElement.scrollHeight,
+    document.body.offsetHeight,
+    document.documentElement.offsetHeight,
+    document.documentElement.clientHeight
+  );
+}
+
 
 const rowConverter = (d) => {
     return {
@@ -8,12 +33,32 @@ const rowConverter = (d) => {
 }
 }
 
+const handleZoom = (e) => {
+console.log(Math.log(d3.event.transform.k))
+handleUpdate(Math.log(d3.event.transform.k))
+}
+
+
+const handleUpdate = (k) => {
+  console.log(parseInt(-k*7)%7)
+  floatingDiv.style.top = `${(h2-h1)/7*(parseInt(-k*7)%7)}px`;
+  let index = parseInt(-k); //floors k 
+  let color = {
+    0: 'green',
+    1: 'red',
+    2: 'blue',
+    3: 'orange'
+  }
+  svg.selectAll(".state").style('fill', color[index])
+}
 
 const createVisualization = (d) => {
-    let svg = d3.select("#main").append('svg')
+    svg = d3.select("#main").append('svg')
     .attr('width', w)
     .attr('height', h);
 
+
+    let zoom = d3.zoom().on('zoom', handleZoom)
     // 2. Define a map projection
     let projection = d3.geoAlbersUsa()
             .translate([w/2, h/2]) ;
@@ -38,10 +83,11 @@ const createVisualization = (d) => {
     let map = svg.append('g');
 
     //Bind data and create one path per GeoJSON feature
-    map.selectAll("path")
+    map.selectAll(".state")
     .data(d.features)
     .enter()
     .append("path")
+    .classed('state', true)
     .attr("d", path)
     .style('stroke', 'black')
     .style("fill", d => {
@@ -57,6 +103,8 @@ const createVisualization = (d) => {
     }
     });
 
+
+    svg.call(zoom);
 }
 
 // load multiple json files and wait for all results using Promise.all()
@@ -80,6 +128,8 @@ Promise.all([
     let stateValues = new Map(states.map(d => [d.state, d.value]));
 
     console.log(stateValues);
+    floatingDiv= document.querySelector('#floatingBlock');
+    floatingDiv.style.top = `${h -200}px`;
 
     createVisualization(stateData);
 

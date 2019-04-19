@@ -1,0 +1,1 @@
+https://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code 
