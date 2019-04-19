@@ -1,9 +1,10 @@
 let w = getWidth()-20;
 let h = getHeight()-20;
-let h1 = 200;
+let h1 = 20;
 let h2 = getHeight() - 200;
 let svg;
 let floatingDiv;
+
 //getWidth and getHeight from https://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
 function getWidth() {
   return Math.max(
@@ -38,10 +39,31 @@ console.log(Math.log(d3.event.transform.k))
 handleUpdate(Math.log(d3.event.transform.k))
 }
 
-
+const update1 = (d) => {
+  floatingDiv.innerText = "1"
+  }
+  
+  const update2 = (d) => {
+  
+    floatingDiv.innerText = "2"
+  }
+  
+  const update3 = (d) => {
+  
+    floatingDiv.innerText = "3"
+  }
+  
+  let update = {
+    0: update1,
+    1: update2,
+    2:update3,
+    3: update1
+  }
+  
 const handleUpdate = (k) => {
+  if(-k>4 || -k<0)return;
   console.log(parseInt(-k*7)%7)
-  floatingDiv.style.top = `${(h2-h1)/7*(parseInt(-k*7)%7)}px`;
+  floatingDiv.style.top = `${(h2-h1)/7*(parseInt(-k*7)%7) + h1}px`;
   let index = parseInt(-k); //floors k 
   let color = {
     0: 'green',
@@ -49,7 +71,8 @@ const handleUpdate = (k) => {
     2: 'blue',
     3: 'orange'
   }
-  svg.selectAll(".state").style('fill', color[index])
+  svg.selectAll(".state").style('fill', color[index]);
+  update[index]();
 }
 
 const createVisualization = (d) => {
@@ -106,6 +129,7 @@ const createVisualization = (d) => {
 
     svg.call(zoom);
 }
+
 
 // load multiple json files and wait for all results using Promise.all()
 // 
