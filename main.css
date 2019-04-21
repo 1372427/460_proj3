@@ -18,20 +18,23 @@
     margin: auto;
   }
 
-
+body{
+  overflow: hidden;
+}
 
   #wrapper {
     background-color: #f8fbff;
   
   }
 
-  #floatingBlock{
+  #floatingBlock, #floatingBlock2{
       position: absolute;
       left: 20px;
       width: 200px;
       height: 100px;
       border: 3px solid black;
-
+    transition-duration: 0.5s;
+    background-color: white
   }
 
   .line {
@@ -60,4 +63,7 @@ button {
 
 body{
   font-family: 'Roboto Mono', monospace;
+}
+#animWrap{
+  position: absolute;
 }

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang='en'>
   <head>
-    <title>Ten Leading Causes of Death</title>
+    <title>US Education Statistics</title>
     <meta charset="utf-8">
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://d3js.org/d3-collection.v1.min.js"></script>
@@ -11,6 +11,13 @@
   </head>
 
   <body>
+  <div id="animWrap">
+    <input id="slider" type="range" min="1993" max="2015" value="1993" step="1" />
+    
+    <span id="range">1993</span>
+
+    <button name="play" id="play">Play</button>
+  </div>
     <div id="wrapper">
 
 
@@ -21,6 +28,7 @@
     </div>
 
     <div id="floatingBlock">This is a floating block</div>
+    <div id="floatingBlock2" class="hidden">This is a floating block 2</div>
     <script src='./main.js'></script>
   </body>
 </html>
