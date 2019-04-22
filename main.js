@@ -7,6 +7,8 @@ let stateValues;
 let floatingDiv, floatingDiv2;
 let running =false, chartType, timer, button, year;
 let clearAnimator;
+let color;
+let educationData;
 
 //getWidth and getHeight from https://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
 function getWidth() {
@@ -32,69 +34,92 @@ function getHeight() {
 
 const rowConverter = (d) => {
     return {
-    year:  d3.timeParse('%Y')(+d.YEAR), 
-    state: d.STATE.toLowerCase(),
+    year:  parseInt(+d.YEAR), 
+    state: d.STATE.toLowerCase().replace(/_/g, ' '),
     enroll: parseInt(d.ENROLL),
     revenue: parseFloat(d.TOTAL_REVENUE),
     expend: parseFloat(d.TOTAL_EXPENDITURE),
-    grade_all: parseInt(d.GRADES_ALL_G)
+    grade_all: parseInt(d.GRADES_ALL_G),
+    revenue_enroll : parseFloat(d.TOTAL_REVENUE)/parseFloat(d.ENROLL)
 }
 }
 
 const handleZoom = (e) => {
-console.log(Math.log(d3.event.transform.k))
+//console.log(Math.log(d3.event.transform.k))
 handleUpdate(Math.log(d3.event.transform.k))
 }
 
+const updateColorScale = (variable) => {
+  
+  let min=1000000000,max=0;
+  for(let key1 in educationData){
+    for(let key in educationData[key1]){
+      let entry = educationData[key1][key][0][variable];
+      if(entry>max)max=entry;
+      if(entry<min)min=entry;
+    }
+
+  }
+  color.domain([min, max])
+
+   //Bind data and create one path per GeoJSON feature
+   map.selectAll(".state")
+   .style('stroke', 'black')
+   .style("fill", d => {
+   //If value is undefined…
+   return color(educationData[year][d.properties.name.toLowerCase()][0][variable]);
+   
+   });
+}
+
 const update1 = (d) => {
-  if(chartType==1)return;
+  if(chartType==1 && !running)return;
   chartType=1;
   let variable = "enroll";
 
   floatingDiv.innerText = "1"
   floatingDiv.classList.remove('hidden')
   floatingDiv2.classList.add('hidden')
-      //Bind data and create one path per GeoJSON feature
-      map.selectAll(".state")
-      .style('stroke', 'green')
-      .style("fill", d => {
-        console.log(stateValues.get(d.properties.name))
-      
-      //If value is undefined…
-      return "#ccc";
-      
-      });
+
+  updateColorScale(variable)
+
+     
   
   }
   
   const update2 = (d) => {
-    if(chartType==2)return;
+    if(chartType==2 && !running)return;
     chartType=2;
     let variable = "revenue";
   
     floatingDiv2.innerText = "2"
     floatingDiv2.classList.remove('hidden')
     floatingDiv.classList.add('hidden')
+
+    updateColorScale(variable)
   }
   
   const update3 = (d) => {
-    if(chartType==3)return;
+    if(chartType==3 && !running)return;
     chartType=3;
     let variable = "expend";
 
     floatingDiv.innerText = "3"
     floatingDiv.classList.remove('hidden')
     floatingDiv2.classList.add('hidden')
+    
+  updateColorScale(variable)
   }
   
 const update4 = (d) => {
-  if(chartType==4)return;
+  if(chartType==4 && !running)return;
   chartType=4;
-  let variable = "revenue per enroll"
+  let variable = "revenue_enroll"
 
   floatingDiv2.innerText= "4";
   floatingDiv2.classList.remove('hidden')
   floatingDiv.classList.add('hidden')
+  updateColorScale(variable)
 }
 
   let update = {
@@ -105,20 +130,11 @@ const update4 = (d) => {
   }
   
 const handleUpdate = (k) => {
-  console.log(chartType)
   if(!k)return update[chartType-1]();
   if(-k>4 || -k<0)return;
-  console.log(parseInt(-k*7)%7)
   floatingDiv.style.top = `${h2-(h2)/5*(parseInt(-k*7)%7)}px`;
   floatingDiv2.style.top = `${h2-(h2)/5*(parseInt(-k*7)%7)}px`;
   let index = parseInt(-k); //floors k 
-  let color = {
-    0: 'green',
-    1: 'red',
-    2: 'blue',
-    3: 'orange'
-  }
-  svg.selectAll(".state").style('fill', color[index]);
   if(chartType-1 !== index){
     clearAnimator();
     update[index](); 
@@ -144,7 +160,7 @@ const createVisualization = (d) => {
     .projection(projection);
                     
     // 4. Create a color scale to use for the fill
-    let color = d3.scaleQuantize()
+    color = d3.scaleQuantize()
     .range(["rgb(237,248,233)","rgb(186,228,179)","rgb(116,196,118)","rgb(49,163,84)","rgb(0,109,44)"]);
 
     //Set input domain for color scale
@@ -188,10 +204,10 @@ Promise.all([
     d3.json('us-states.json'),
     d3.csv('states_all_extended-csv.csv', rowConverter)
   ]).then((values) => {
-    let [stateData, educationData] = values;
-
-    educationData = d3.nest().key(d=>d.state).object(educationData);
-
+    let [stateData, eData] = values;
+    educationData = eData;
+    educationData = d3.nest().key(d=>d.year).key(d=>d.state).object(educationData);
+    console.log(educationData)
     // Generate randomized state data for choropleth
     let states = stateData.features.map(d => { 
       return {
@@ -202,7 +218,7 @@ Promise.all([
 
     stateValues = new Map(states.map(d => [d.state, d.value]));
 
-    console.log(stateValues);
+    console.log(stateData);
     floatingDiv= document.querySelector('#floatingBlock');
     floatingDiv.style.top = `${h -200}px`;
     floatingDiv2= document.querySelector('#floatingBlock2');
