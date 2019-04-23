@@ -9,9 +9,11 @@ let running =false, chartType, timer, button, year;
 let clearAnimator;
 let color;
 let educationData;
+let legendScale, legend;
 
-document.querySelector("#animWrap").style.left = `${getWidth()/2}px`
-
+document.querySelector("#animWrap").style.left = `${getWidth()/2-150}px`
+console.log(getWidth());
+console.log(getHeight())
 //getWidth and getHeight from https://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
 function getWidth() {
   return Math.max(
@@ -63,15 +65,18 @@ const updateColorScale = (variable) => {
 
   }
   color.domain([min, max])
+  legendScale.domain([min, max])
 
    //Bind data and create one path per GeoJSON feature
    map.selectAll(".state")
    .style('stroke', 'black')
    .style("fill", d => {
-   //If value is undefined…
-   return color(educationData[year][d.properties.name.toLowerCase()][0][variable]);
-   
+      //If value is undefined…
+      return color(educationData[year][d.properties.name.toLowerCase()][0][variable]);
    });
+
+   svg.select(".legendQuant")
+   .call(legend);
 }
 
 const update1 = (d) => {
@@ -161,11 +166,16 @@ const createVisualization = (d) => {
     .attr('width', w)
     .attr('height', h);
 
+  let height = getHeight();
+  let width = getWidth();
+  let mapScale = height*2;
+  if(width/height<2) mapScale = width;
 
     let zoom = d3.zoom().on('zoom', handleZoom)
     // 2. Define a map projection
     let projection = d3.geoAlbersUsa()
-            .translate([w/2, h/2]) ;
+            .translate([w/2, h/2])
+            .scale(mapScale) ;
             
     let projectionDefaultScale = projection.scale();
 
@@ -188,6 +198,26 @@ const createVisualization = (d) => {
     .classed('state', true)
     .attr("d", path)
     .style('stroke', 'black');
+
+
+    // LEGEND - built using Susie Lu's d3.svg.legend package
+    legendScale = d3.scaleQuantize()
+    .range(["rgb(237,248,233)","rgb(186,228,179)","rgb(116,196,118)","rgb(49,163,84)","rgb(0,109,44)"]);
+
+    svg.append("g")
+    .attr("class", "legendQuant")
+    .attr("transform", `translate(${w-250}, ${h-300})`);
+
+    // see https://github.com/d3/d3-shape#symbols for information about d3 symbol shapes
+    legend = d3.legendColor()
+    .shape("path", d3.symbol().type(d3.symbolSquare).size(60)())
+    .shapePadding(10)
+    .scale(legendScale);
+
+    svg.select(".legendQuant")
+    .call(legend);
+    
+
 
     svg.call(zoom);
 

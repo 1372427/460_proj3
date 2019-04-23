@@ -10,3 +10,6 @@ https://www.w3schools.com/howto/howto_js_rangeslider.asp
 
 Button styling
 https://www.w3schools.com/howto/tryit.asp?filename=tryhow_css_alert_buttons
+
+Legend
+https://d3-legend.susielu.com/#color-examples 
