@@ -10,6 +10,8 @@ let clearAnimator;
 let color;
 let educationData;
 
+document.querySelector("#animWrap").style.left = `${getWidth()/2}px`
+
 //getWidth and getHeight from https://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
 function getWidth() {
   return Math.max(
@@ -40,7 +42,8 @@ const rowConverter = (d) => {
     revenue: parseFloat(d.TOTAL_REVENUE),
     expend: parseFloat(d.TOTAL_EXPENDITURE),
     grade_all: parseInt(d.GRADES_ALL_G),
-    revenue_enroll : parseFloat(d.TOTAL_REVENUE)/parseFloat(d.ENROLL)
+    revenue_enroll : parseFloat(d.TOTAL_REVENUE)/parseFloat(d.ENROLL),
+    expenditure_revenue: parseFloat(d.TOTAL_EXPENDITURE)-parseFloat(d.TOTAL_REVENUE)
 }
 }
 
@@ -50,7 +53,6 @@ handleUpdate(Math.log(d3.event.transform.k))
 }
 
 const updateColorScale = (variable) => {
-  
   let min=1000000000,max=0;
   for(let key1 in educationData){
     for(let key in educationData[key1]){
@@ -77,7 +79,7 @@ const update1 = (d) => {
   chartType=1;
   let variable = "enroll";
 
-  floatingDiv.innerText = "1"
+  floatingDiv.innerText = variable;
   floatingDiv.classList.remove('hidden')
   floatingDiv2.classList.add('hidden')
 
@@ -92,7 +94,7 @@ const update1 = (d) => {
     chartType=2;
     let variable = "revenue";
   
-    floatingDiv2.innerText = "2"
+    floatingDiv2.innerText = variable;
     floatingDiv2.classList.remove('hidden')
     floatingDiv.classList.add('hidden')
 
@@ -104,7 +106,7 @@ const update1 = (d) => {
     chartType=3;
     let variable = "expend";
 
-    floatingDiv.innerText = "3"
+    floatingDiv.innerText = variable;
     floatingDiv.classList.remove('hidden')
     floatingDiv2.classList.add('hidden')
     
@@ -116,9 +118,20 @@ const update4 = (d) => {
   chartType=4;
   let variable = "revenue_enroll"
 
-  floatingDiv2.innerText= "4";
+  floatingDiv2.innerText= variable;
   floatingDiv2.classList.remove('hidden')
   floatingDiv.classList.add('hidden')
+  updateColorScale(variable)
+}
+
+const update5 = (d) => {
+  if(chartType==5 && !running)return;
+  chartType=5;
+  let variable = "expenditure_revenue"
+
+  floatingDiv.innerText= variable;
+  floatingDiv.classList.remove('hidden')
+  floatingDiv2.classList.add('hidden')
   updateColorScale(variable)
 }
 
@@ -126,12 +139,13 @@ const update4 = (d) => {
     0: update1,
     1: update2,
     2:update3,
-    3: update4
+    3: update4,
+    4: update5,
   }
   
 const handleUpdate = (k) => {
   if(!k)return update[chartType-1]();
-  if(-k>4 || -k<0)return;
+  if(-k>Object.keys(update).length || -k<0.2)return;
   floatingDiv.style.top = `${h2-(h2)/5*(parseInt(-k*7)%7)}px`;
   floatingDiv2.style.top = `${h2-(h2)/5*(parseInt(-k*7)%7)}px`;
   let index = parseInt(-k); //floors k 
@@ -142,7 +156,7 @@ const handleUpdate = (k) => {
 }
 
 const createVisualization = (d) => {
-  chartType=1;
+  chartType=0;
     svg = d3.select("#main").append('svg')
     .attr('width', w)
     .attr('height', h);
@@ -163,13 +177,7 @@ const createVisualization = (d) => {
     color = d3.scaleQuantize()
     .range(["rgb(237,248,233)","rgb(186,228,179)","rgb(116,196,118)","rgb(49,163,84)","rgb(0,109,44)"]);
 
-    //Set input domain for color scale
-    //let sValues = Array.from(stateValues.values()); // grab values from Map object and put into an array
-    //color.domain(d3.extent(sValues));
-
-    // 5. Draw the map using SVG path elements, styling with fill values
-    // from our color scale
-
+    // 5. Draw the map using SVG path elements
     map = svg.append('g');
 
     //Bind data and create one path per GeoJSON feature
@@ -179,23 +187,12 @@ const createVisualization = (d) => {
     .append("path")
     .classed('state', true)
     .attr("d", path)
-    .style('stroke', 'black')
-    .style("fill", d => {
-    //Get data value
-    let value = d.properties.name;
-
-    if (value) {
-    //If value exists…
-    return color(value);
-    } else {
-    //If value is undefined…
-    return "#ccc";
-    }
-    });
-
+    .style('stroke', 'black');
 
     svg.call(zoom);
-}
+
+    handleUpdate(-0.2);
+  }
 
 
 // load multiple json files and wait for all results using Promise.all()
@@ -224,7 +221,6 @@ Promise.all([
     floatingDiv2= document.querySelector('#floatingBlock2');
     floatingDiv2.style.top = `${h -200}px`;
 
-    createVisualization(stateData);
 
     //animation for a slider from http://bl.ocks.org/darrenjaworski/5544599
     button = document.querySelector("button");
@@ -260,11 +256,13 @@ Promise.all([
     })
 
     slider.addEventListener("change", () =>{
+      year = slider.value;
+      running=true;
       handleUpdate();
       document.querySelector("#range").innerHTML = slider.value;
-      clearInterval(timer);
       running=false;
       button.innerHTML="Play"
+      clearInterval(timer);
     })
 
     clearAnimator = () => {
@@ -276,5 +274,6 @@ Promise.all([
       document.querySelector("#range").innerHTML = year;
       slider.value = year;
     }
+    createVisualization(stateData);
 
   }); 
