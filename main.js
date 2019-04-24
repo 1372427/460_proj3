@@ -7,7 +7,7 @@ let stateValues;
 let floatingDiv, floatingDiv2;
 let running =false, chartType, timer, button, year;
 let clearAnimator;
-let color;
+let color, color2,colorScaleType=0;
 let educationData;
 let legendScale, legend;
 
@@ -64,15 +64,26 @@ const updateColorScale = (variable) => {
     }
 
   }
+  let min2 = 100000000; max2 =0;
+  for(let key in educationData[year]){
+    let entry = educationData[year][key][0][variable];
+    if(entry>max2)max2=entry;
+    if(entry<min2)min2=entry;
+  }
   color.domain([min, max])
-  legendScale.domain([min, max])
+  legendScale.domain([colorScaleType==0?min:min2, colorScaleType==0?max:max2])
+  color2.domain([min2, max2]);
+
+  let colors = {
+    0: color,
+    1: color2
+  }
 
    //Bind data and create one path per GeoJSON feature
    map.selectAll(".state")
-   .style('stroke', 'black')
    .style("fill", d => {
       //If value is undefined…
-      return color(educationData[year][d.properties.name.toLowerCase()][0][variable]);
+      return colors[colorScaleType](educationData[year][d.properties.name.toLowerCase()][0][variable]);
    });
 
    svg.select(".legendQuant")
@@ -186,6 +197,8 @@ const createVisualization = (d) => {
     // 4. Create a color scale to use for the fill
     color = d3.scaleQuantize()
     .range(["rgb(237,248,233)","rgb(186,228,179)","rgb(116,196,118)","rgb(49,163,84)","rgb(0,109,44)"]);
+    color2 = d3.scaleQuantize()
+    .range(["rgb(237,248,233)","rgb(186,228,179)","rgb(116,196,118)","rgb(49,163,84)","rgb(0,109,44)"]);
 
     // 5. Draw the map using SVG path elements
     map = svg.append('g');
@@ -250,6 +263,15 @@ Promise.all([
     floatingDiv.style.top = `${h -200}px`;
     floatingDiv2= document.querySelector('#floatingBlock2');
     floatingDiv2.style.top = `${h -200}px`;
+
+    document.querySelector("#legendUpdate").addEventListener("change", (e) => {
+      console.log(e)
+      if(e.target.checked){
+        colorScaleType = 1;
+      }else{
+        colorScaleType =0;
+      }
+    })
 
 
     //animation for a slider from http://bl.ocks.org/darrenjaworski/5544599
