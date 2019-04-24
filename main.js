@@ -11,6 +11,7 @@ let color, color2,colorScaleType=0;
 let educationData;
 let legendScale, legend;
 let stateCentroids;
+let currTooltipState;
 
 document.querySelector("#animWrap").style.left = `${getWidth()/2-150}px`
 console.log(getWidth());
@@ -161,7 +162,10 @@ const update5 = (d) => {
   }
   
 const handleUpdate = (k) => {
-  if(!k)return update[chartType-1]();
+  if(!k){
+   update[chartType-1]();
+   return updateTooltip();
+  }
   if(-k>Object.keys(update).length || -k<0.2)return;
   floatingDiv.style.top = `${h2-(h2)/5*(parseInt(-k*7)%7)}px`;
   floatingDiv2.style.top = `${h2-(h2)/5*(parseInt(-k*7)%7)}px`;
@@ -170,6 +174,32 @@ const handleUpdate = (k) => {
     clearAnimator();
     update[index](); 
   }
+
+  updateTooltip();
+}
+
+function updateTooltip(d) {
+console.log(d);
+  let tooltip = document.querySelector("#tooltip");
+  if(tooltip.classList.contains("hidden"))return;
+
+  let name = currTooltipState;
+  if(d){
+    name = d.properties.name;
+  }
+  let data = educationData[year][name.toLowerCase()][0];
+
+  tooltip.innerHTML = `
+  State: ${name}<br/>
+  Year: ${year}<br/>
+  Students Enrolled: ${data.enroll}<br/>
+  Revenue: ${data.revenue}<br/>
+  Expenditure: ${data.expend}<br/>
+  `
+  let tooltipSvg = tooltip.querySelector('svg');
+
+
+  currTooltipState = name;
 }
 
 function handleMouseOver (d, i) {
@@ -181,15 +211,7 @@ function handleMouseOver (d, i) {
   tooltip.classList.remove("hidden");
   tooltip.style.top = `${d3.event.y}px`
   tooltip.style.left = `${d3.event.x}px`;
-  let data = educationData[year][d.properties.name.toLowerCase()][0]
-  console.log(data)
-  tooltip.innerHTML = `
-  State: ${d.properties.name}<br/>
-  Year: ${year}<br/>
-  Students Enrolled: ${data.enroll}<br/>
-  Revenue: ${data.revenue}<br/>
-  Expenditure: ${data.expend}<br/>
-  `
+  updateTooltip(d);
   d3.select(this).style("stroke-width", "2px");
   d3.event.preventDefault();
   return false;
@@ -200,10 +222,6 @@ function handleMouseOut (d, i) {
   let tooltip = document.querySelector("#tooltip");
   tooltip.classList.add("hidden");
   d3.select(this).style("stroke-width", "1px")
-}
-
-function handleMouseClick (d, i) {
-
 }
 
 
