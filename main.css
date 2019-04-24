@@ -118,3 +118,12 @@ display: inline-block;
 
 #play {background-color: #4CAF50;} /* Green */
 #play:hover {background-color: #46a049;}
+
+#tooltip {
+  position: absolute;
+  min-height: 200px;
+  width: 400px;
+  top: 20px;
+  background-color: white;
+  border: 1px solid black
+}

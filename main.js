@@ -2,7 +2,7 @@ let w = getWidth()-20;
 let h = getHeight()-20;
 let h1 = 0;
 let h2 = getHeight();
-let svg, map;
+let svg, map, projection, path;
 let stateValues;
 let floatingDiv, floatingDiv2;
 let running =false, chartType, timer, button, year;
@@ -10,6 +10,7 @@ let clearAnimator;
 let color, color2,colorScaleType=0;
 let educationData;
 let legendScale, legend;
+let stateCentroids;
 
 document.querySelector("#animWrap").style.left = `${getWidth()/2-150}px`
 console.log(getWidth());
@@ -171,6 +172,41 @@ const handleUpdate = (k) => {
   }
 }
 
+function handleMouseOver (d, i) {
+
+  map.selectAll(".state")
+  .style("stroke-width", "1px")
+  //d3.select(this).style("fill", "black")
+  let tooltip = document.querySelector("#tooltip");
+  tooltip.classList.remove("hidden");
+  tooltip.style.top = `${d3.event.y}px`
+  tooltip.style.left = `${d3.event.x}px`;
+  let data = educationData[year][d.properties.name.toLowerCase()][0]
+  console.log(data)
+  tooltip.innerHTML = `
+  State: ${d.properties.name}<br/>
+  Year: ${year}<br/>
+  Students Enrolled: ${data.enroll}<br/>
+  Revenue: ${data.revenue}<br/>
+  Expenditure: ${data.expend}<br/>
+  `
+  d3.select(this).style("stroke-width", "2px");
+  d3.event.preventDefault();
+  return false;
+}
+
+function handleMouseOut (d, i) {
+
+  let tooltip = document.querySelector("#tooltip");
+  tooltip.classList.add("hidden");
+  d3.select(this).style("stroke-width", "1px")
+}
+
+function handleMouseClick (d, i) {
+
+}
+
+
 const createVisualization = (d) => {
   chartType=0;
     svg = d3.select("#main").append('svg')
@@ -184,19 +220,19 @@ const createVisualization = (d) => {
 
     let zoom = d3.zoom().on('zoom', handleZoom)
     // 2. Define a map projection
-    let projection = d3.geoAlbersUsa()
+     projection = d3.geoAlbersUsa()
             .translate([w/2, h/2])
             .scale(mapScale) ;
             
     let projectionDefaultScale = projection.scale();
 
     // 3. Define a path generator using the projection
-    let path = d3.geoPath()
+    path = d3.geoPath()
     .projection(projection);
                     
     // 4. Create a color scale to use for the fill
-    color = d3.scaleQuantize()
-    .range(["rgb(237,248,233)","rgb(186,228,179)","rgb(116,196,118)","rgb(49,163,84)","rgb(0,109,44)"]);
+    color = d3.scaleLinear()
+    .range(["rgb(237,248,233)","rgb(0,109,44)"]);
     color2 = d3.scaleQuantize()
     .range(["rgb(237,248,233)","rgb(186,228,179)","rgb(116,196,118)","rgb(49,163,84)","rgb(0,109,44)"]);
 
@@ -209,8 +245,10 @@ const createVisualization = (d) => {
     .enter()
     .append("path")
     .classed('state', true)
+    .attr("id", (d) => d.properties.name)
     .attr("d", path)
-    .style('stroke', 'black');
+    .style('stroke', 'black')
+    .on("click", handleMouseOver);
 
 
     // LEGEND - built using Susie Lu's d3.svg.legend package
@@ -230,7 +268,13 @@ const createVisualization = (d) => {
     svg.select(".legendQuant")
     .call(legend);
     
-
+    document.body.addEventListener("click", function(e){
+      if(e.target!==document.querySelector("svg"))return false;
+      map.selectAll(".state")
+      .style("stroke-width", "1px")
+      let tooltip = document.querySelector("#tooltip");
+      tooltip.classList.add("hidden");
+    })
 
     svg.call(zoom);
 
@@ -249,16 +293,25 @@ Promise.all([
     educationData = d3.nest().key(d=>d.year).key(d=>d.state).object(educationData);
     console.log(educationData)
     // Generate randomized state data for choropleth
-    let states = stateData.features.map(d => { 
+    
+    let centroids = stateData.features.map(d3.geoCentroid);
+    
+    stateCentroids = stateData.features.map((d,i) => { 
       return {
-        state: d.properties.name, 
-        value: educationData[d.properties.name.toLowerCase()]
+        id: d.properties.name, 
+        value: d3.geoCentroid(d)
       }
     });
 
-    stateValues = new Map(states.map(d => [d.state, d.value]));
+    //https://medium.com/dailyjs/rewriting-javascript-converting-an-array-of-objects-to-an-object-ec579cafbfc7
+    const arrayToObject = (array) =>
+   array.reduce((obj, item) => {
+     obj[item.id] = item.value
+     return obj
+   }, {})
 
-    console.log(stateData);
+   stateCentroids = arrayToObject(stateCentroids);
+
     floatingDiv= document.querySelector('#floatingBlock');
     floatingDiv.style.top = `${h -200}px`;
     floatingDiv2= document.querySelector('#floatingBlock2');
@@ -326,6 +379,14 @@ Promise.all([
       document.querySelector("#range").innerHTML = year;
       slider.value = year;
     }
+
+console.log(stateData)
+    //let centroids = stateData.features.map(function (feature){
+    //  return path.centroid(feature);
+    //});
+
+    //console.log(centroids)
+
     createVisualization(stateData);
 
   }); 
