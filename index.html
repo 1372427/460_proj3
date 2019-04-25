@@ -12,12 +12,25 @@
   </head>
 
   <body>
+
+    <div id="intro">
+      <h3>This page displays US K-12 Education Statistics for the years 1993 to 2015.</h3>
+      <p>Scroll up to see different visualizations. Don't forget to read the explanation for each graph!</p>
+      <p>To view the data for different years, drag the slider to the desired year or click the "Play" button to
+        see an animation of all years.
+      </p>
+      <p>For more information about a specific state, please click on the desired state to show.</p>
+      <p>Data from Kaggle</p>
+      <h3>Please click on this info box to view the visualization</h3>
+    </div>
   <div id="animWrap">
     <input id="slider" type="range" min="1993" max="2015" value="1993" step="1" />
     
     <span id="range">1993</span>
 
     <button name="play" id="play">Play</button>
+    <button  id="faster">Faster</button>
+    <button id="slower">Slower</button></br>
     <input type="checkbox" id="legendUpdate"> Update legend by year
   </div>
     <div id="wrapper">

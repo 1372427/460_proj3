@@ -106,7 +106,7 @@ display: inline-block;
 }
 
 
-#play {
+#play, #faster, #slower {
   border: none; /* Remove borders */
   color: white; /* Add a text color */
   padding: 4px 20px; /* Add some padding */
@@ -116,8 +116,8 @@ display: inline-block;
   text-anchor: middle;
 }
 
-#play {background-color: #4CAF50;} /* Green */
-#play:hover {background-color: #46a049;}
+#play, #faster, #slower {background-color: #4CAF50;} /* Green */
+#play:hover, #faster:hover, #slower:hover {background-color: #46a049;}
 
 #tooltip {
   position: absolute;
@@ -126,4 +126,15 @@ display: inline-block;
   top: 20px;
   background-color: white;
   border: 1px solid black
+}
+
+#intro {
+  background-color: white;
+  border: 1px solid black;
+  position: absolute;
+  width: 60%;
+  height: 60%;
+  z-index: 1;
+  margin: 10% 20%;
+  padding: 20px;
 }

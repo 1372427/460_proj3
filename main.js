@@ -5,7 +5,7 @@ let h2 = getHeight();
 let svg, map, projection, path;
 let stateValues;
 let floatingDiv, floatingDiv2;
-let running =false, chartType, timer, button, year;
+let running =false, chartType, timer, button, year, duration=2000;
 let clearAnimator;
 let color, color2, colorScaleType=0;
 let educationData;
@@ -394,6 +394,38 @@ const createVisualization = (d) => {
   }
 
 
+  let playAnimation = () => {
+      let max = 2015;
+      let min = 1993;
+
+      if(running){
+        button.innerHTML = "Play";
+        running = false;
+        clearInterval(timer);
+      }else{
+        button.innerHTML = "Pause";
+        year = slider.value;
+        timer = setInterval(() => {
+          if(year <max){
+            year++;
+          }else{
+            button.innerHTML = "Play";
+            year = min;
+            handleUpdate();
+            running = false;
+            clearInterval(timer);
+          }
+          document.querySelector("#range").innerHTML = year;
+          slider.value = year;
+          handleUpdate();
+
+        }, duration);
+        running= true;
+      }
+    }
+  
+
+
 // load multiple json files and wait for all results using Promise.all()
 // 
 Promise.all([
@@ -444,39 +476,21 @@ Promise.all([
     })
 
 
+    document.querySelector("#faster").addEventListener("click", () => {
+      duration= duration>200? duration-200 : 200
+      clearAnimator();
+      playAnimation();
+    });
+    document.querySelector("#slower").addEventListener("click", () => {
+      duration= duration<3000? duration+200 : 3000
+      clearAnimator();
+      playAnimation();
+    });
+
     //animation for a slider from http://bl.ocks.org/darrenjaworski/5544599
     button = document.querySelector("button");
     let slider = document.querySelector("#slider")
-    button.addEventListener("click", () => {
-      let duration = 2000;
-      let max = 2015;
-      let min = 1993;
-
-      if(running){
-        button.innerHTML = "Play";
-        running = false;
-        clearInterval(timer);
-      }else{
-        button.innerHTML = "Pause";
-        year = slider.value;
-        timer = setInterval(() => {
-          if(year <max){
-            year++;
-          }else{
-            button.innerHTML = "Play";
-            year = min;
-            handleUpdate();
-            running = false;
-            clearInterval(timer);
-          }
-          document.querySelector("#range").innerHTML = year;
-          slider.value = year;
-          handleUpdate();
-
-        }, duration);
-        running= true;
-      }
-    })
+    button.addEventListener("click", playAnimation)
 
     slider.addEventListener("change", () =>{
       year = slider.value;
@@ -498,7 +512,7 @@ Promise.all([
       slider.value = year;
     }
 
-console.log(stateData)
+    document.querySelector("#intro").addEventListener("click", (e) => document.querySelector("#intro").classList.add("hidden"))
 
     createVisualization(stateData);
 
