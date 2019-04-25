@@ -7,11 +7,44 @@ let stateValues;
 let floatingDiv, floatingDiv2;
 let running =false, chartType, timer, button, year;
 let clearAnimator;
-let color, color2,colorScaleType=0;
+let color, color2, colorScaleType=0;
 let educationData;
 let legendScale, legend;
 let stateCentroids;
-let currTooltipState;
+let currTooltipState, tooltipData;
+let inflation = {
+  1993: 1,
+  1994: 1.03,
+  1995: 1.05,
+  1996: 1.09,
+  1997: 1.11,
+  1998: 1.13,
+  1999: 1.15,
+  2000: 1.19,
+  2001: 1.22,
+  2002: 1.24,
+  2003: 1.27,
+  2004: 1.31,
+  2005: 1.35,
+  2006: 1.40,
+  2007: 1.43,
+  2008: 1.49,
+  2009: 1.48,
+  2010: 1.51,
+  2011: 1.56,
+  2012: 1.59,
+  2013: 1.61,
+  2014: 1.64,
+  2015: 1.64
+};
+let colorRange = ["rgb(237,248,233)","rgb(199,233,192)","rgb(161,217,155)","rgb(116,196,118)","rgb(65,171,93)", "rgb(35,139,69)", "rgb(0,90,50)"];
+let chartTypeVar = {
+  1: "enroll",
+  2: "revenue",
+  3: "expend",
+  4: "revenue_enroll",
+  5: "expenditure_revenue"
+}
 
 document.querySelector("#animWrap").style.left = `${getWidth()/2-150}px`
 console.log(getWidth());
@@ -43,11 +76,11 @@ const rowConverter = (d) => {
     year:  parseInt(+d.YEAR), 
     state: d.STATE.toLowerCase().replace(/_/g, ' '),
     enroll: parseInt(d.ENROLL),
-    revenue: parseFloat(d.TOTAL_REVENUE),
-    expend: parseFloat(d.TOTAL_EXPENDITURE),
+    revenue: parseFloat(d.TOTAL_REVENUE)/inflation[d.YEAR],
+    expend: parseFloat(d.TOTAL_EXPENDITURE)/inflation[d.YEAR],
     grade_all: parseInt(d.GRADES_ALL_G),
-    revenue_enroll : parseFloat(d.TOTAL_REVENUE)/parseFloat(d.ENROLL),
-    expenditure_revenue: parseFloat(d.TOTAL_EXPENDITURE)-parseFloat(d.TOTAL_REVENUE)
+    revenue_enroll : parseFloat(d.TOTAL_REVENUE)/parseFloat(d.ENROLL)/inflation[d.YEAR],
+    expenditure_revenue: (parseFloat(d.TOTAL_EXPENDITURE)-parseFloat(d.TOTAL_REVENUE))/inflation[d.YEAR]
 }
 }
 
@@ -102,9 +135,6 @@ const update1 = (d) => {
   floatingDiv2.classList.add('hidden')
 
   updateColorScale(variable)
-
-     
-  
   }
   
   const update2 = (d) => {
@@ -179,7 +209,6 @@ const handleUpdate = (k) => {
 }
 
 function updateTooltip(d) {
-console.log(d);
   let tooltip = document.querySelector("#tooltip");
   if(tooltip.classList.contains("hidden"))return;
 
@@ -188,15 +217,76 @@ console.log(d);
     name = d.properties.name;
   }
   let data = educationData[year][name.toLowerCase()][0];
+  let svgData = tooltipData[name.toLowerCase()];
+  let toolH = 200;
+  let toolW = 400;
+  let toolP = 20;
 
-  tooltip.innerHTML = `
+  tooltip.querySelector('div').innerHTML = `
   State: ${name}<br/>
   Year: ${year}<br/>
   Students Enrolled: ${data.enroll}<br/>
   Revenue: ${data.revenue}<br/>
   Expenditure: ${data.expend}<br/>
   `
-  let tooltipSvg = tooltip.querySelector('svg');
+
+  d3.selectAll('#svg > *').remove();
+
+  let toolXScale = d3.scaleLinear()
+      .domain([0, Object.keys(inflation).length])
+      .range([3*toolP, toolW-2*toolP]);
+  let toolYScale = d3.scaleLinear()
+      .domain(d3.extent(svgData.map(d=> d[chartTypeVar[chartType]])))
+      .range([toolH-2*toolP, toolP]);
+
+  let tooltipSvg = d3.select('#svg')
+      .append('svg')
+      .attr('height', toolH)
+      .attr('width', toolW);
+
+  let line = d3.line()
+      .x((d,i) => toolXScale(i))
+      .y(d => toolYScale(d[chartTypeVar[chartType]]));
+
+  let xAxis = d3
+      .axisBottom(toolXScale)
+      .tickFormat((d) => 1993+ d);
+
+  tooltipSvg
+      .append("g")
+      .attr("transform", `translate(0, ${toolH - 2*toolP})`)
+      .call(xAxis);
+  
+  let yAxis = d3.axisLeft(toolYScale)
+      .ticks(8)
+      .tickFormat(d3.format(".2s"));
+  tooltipSvg
+      .append("g")
+      .attr("transform", `translate(${3*toolP}, 0)`)
+      .call(yAxis);
+
+  tooltipSvg.append('path')
+      .datum(svgData)
+      .attr('class', 'line')
+      .attr('d', line)
+      .style('stroke', 'green')
+      .style('stroke-width', '2px')
+      .style("fill", 'none')
+
+  tooltipSvg.append('text')
+      .classed('axis-label', true)
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -toolH/2)
+      .attr('y', toolP)
+      .attr('text-anchor', 'middle')
+      .text(chartTypeVar[chartType])
+    
+  tooltipSvg.append('text')
+      .classed('axis-label', true)
+      .attr('x', toolW/2)
+      .attr('y', toolH-toolP/2)
+      .attr('text-anchor', 'middle')
+      .text('Year')
 
 
   currTooltipState = name;
@@ -249,10 +339,14 @@ const createVisualization = (d) => {
     .projection(projection);
                     
     // 4. Create a color scale to use for the fill
-    color = d3.scaleLinear()
-    .range(["rgb(237,248,233)","rgb(0,109,44)"]);
+   // color = d3.scaleLinear()
+   // .range(["rgb(237,248,233)","rgb(0,109,44)"]);
+
+   color = d3.scaleQuantize()
+   .range(colorRange);
+
     color2 = d3.scaleQuantize()
-    .range(["rgb(237,248,233)","rgb(186,228,179)","rgb(116,196,118)","rgb(49,163,84)","rgb(0,109,44)"]);
+    .range(colorRange);
 
     // 5. Draw the map using SVG path elements
     map = svg.append('g');
@@ -271,7 +365,7 @@ const createVisualization = (d) => {
 
     // LEGEND - built using Susie Lu's d3.svg.legend package
     legendScale = d3.scaleQuantize()
-    .range(["rgb(237,248,233)","rgb(186,228,179)","rgb(116,196,118)","rgb(49,163,84)","rgb(0,109,44)"]);
+    .range(colorRange);
 
     svg.append("g")
     .attr("class", "legendQuant")
@@ -309,6 +403,7 @@ Promise.all([
     let [stateData, eData] = values;
     educationData = eData;
     educationData = d3.nest().key(d=>d.year).key(d=>d.state).object(educationData);
+    tooltipData = d3.nest().key(d=>d.state).object(eData)
     console.log(educationData)
     // Generate randomized state data for choropleth
     
@@ -337,11 +432,15 @@ Promise.all([
 
     document.querySelector("#legendUpdate").addEventListener("change", (e) => {
       console.log(e)
+      let prevRun = running;
       if(e.target.checked){
         colorScaleType = 1;
       }else{
         colorScaleType =0;
       }
+      running=true;
+      handleUpdate();
+      running = prevRun;
     })
 
 
@@ -365,8 +464,9 @@ Promise.all([
             year++;
           }else{
             button.innerHTML = "Play";
-            running = false;
             year = min;
+            handleUpdate();
+            running = false;
             clearInterval(timer);
           }
           document.querySelector("#range").innerHTML = year;
@@ -399,11 +499,6 @@ Promise.all([
     }
 
 console.log(stateData)
-    //let centroids = stateData.features.map(function (feature){
-    //  return path.centroid(feature);
-    //});
-
-    //console.log(centroids)
 
     createVisualization(stateData);
 
