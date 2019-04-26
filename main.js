@@ -7,9 +7,9 @@ let stateValues;
 let floatingDiv, floatingDiv2;
 let running =false, chartType, timer, button, year, duration=2000;
 let clearAnimator;
-let color, color2, colorScaleType=0;
+let color, color2, colorScaleType=0, diverging, diverging2;
 let educationData;
-let legendScale, legend;
+let legendScale, legend, legendDomain;
 let stateCentroids;
 let currTooltipState, tooltipData;
 let inflation = {
@@ -38,11 +38,12 @@ let inflation = {
   2015: 1.64
 };
 let colorRange = ["rgb(237,248,233)","rgb(199,233,192)","rgb(161,217,155)","rgb(116,196,118)","rgb(65,171,93)", "rgb(35,139,69)", "rgb(0,90,50)"];
+let divergingRange = ["rgb(178,24,43)", "rgb(239,138,98)","rgb(253,219,199)","rgb(247,247,247)","rgb(209,229,240)","rgb(103,169,207)", "rgb(33,102,172)"];
 let chartTypeVar = {
   1: "enroll",
   2: "revenue",
-  3: "expend",
-  4: "revenue_enroll",
+  4: "expend",
+  3: "revenue_enroll",
   5: "expenditure_revenue"
 }
 
@@ -105,21 +106,40 @@ const updateColorScale = (variable) => {
     if(entry>max2)max2=entry;
     if(entry<min2)min2=entry;
   }
+
+  let scaleIndex = colorScaleType;
+  if(chartTypeVar[chartType] === "expenditure_revenue")scaleIndex = colorScaleType==0? 2:3;
+  let domainMin =scaleIndex%2==0?min:min2;
+  let domainMax = scaleIndex%2==0?max:max2;
+  if(scaleIndex>=2){
+    domainMin =Math.abs(domainMin)>domainMax? domainMin: -domainMax;
+    domainMax = Math.abs(domainMin)>domainMax? Math.abs(domainMin): domainMax;
+  }
+  legendScale.domain([domainMin, domainMax])
+  legendScale.range(scaleIndex<2?colorRange: divergingRange)
   color.domain([min, max])
-  legendScale.domain([colorScaleType==0?min:min2, colorScaleType==0?max:max2])
   color2.domain([min2, max2]);
+  diverging.domain([min, max])
+  diverging2.domain([min2, max2]);
 
   let colors = {
     0: color,
-    1: color2
+    1: color2,
+    2: diverging,
+    3: diverging2
   }
 
    //Bind data and create one path per GeoJSON feature
    map.selectAll(".state")
    .style("fill", d => {
       //If value is undefined…
-      return colors[colorScaleType](educationData[year][d.properties.name.toLowerCase()][0][variable]);
+      return colors[scaleIndex](educationData[year][d.properties.name.toLowerCase()][0][variable]);
    });
+
+   legendDomain = [];
+   for(let i=0; i< 7; i++){
+     legendDomain.push(i*domainMax/7);
+   }
 
    svg.select(".legendQuant")
    .call(legend);
@@ -130,7 +150,9 @@ const update1 = (d) => {
   chartType=1;
   let variable = "enroll";
 
-  floatingDiv.innerText = variable;
+  floatingDiv.innerHTML = `<h2>Enrollment</h2>The 1990s saw a rapid increase in the number of enrolled students in grades K-12. In general, the trend of enrollment increasing continued
+    thoughout the years, but at a slower rate. Some states, particularly in the Northeastern, saw a small decrease in enrollment. California, Texas, and New York had the 
+    highest enrollment in general, but as these states have a larger overall population, this is to be expected.`;
   floatingDiv.classList.remove('hidden')
   floatingDiv2.classList.add('hidden')
 
@@ -142,7 +164,9 @@ const update1 = (d) => {
     chartType=2;
     let variable = "revenue";
   
-    floatingDiv2.innerText = variable;
+    floatingDiv2.innerHTML = `<h2>Total Revenue</h2>Along with enrollment, the total revenue recieved by schools generally increased over the years. Mosts states suffered a small cutback
+    in funding around the year 2013 after a peak in the late 2000s, but quickly recovered in the following years. Yet again, the leaders are California, Texas, and New York. However, this graph does not take 
+    into account the number of students enrolled.`;
     floatingDiv2.classList.remove('hidden')
     floatingDiv.classList.add('hidden')
 
@@ -152,9 +176,12 @@ const update1 = (d) => {
   const update3 = (d) => {
     if(chartType==3 && !running)return;
     chartType=3;
-    let variable = "expend";
+    let variable = "revenue_enroll";
 
-    floatingDiv.innerText = variable;
+    floatingDiv.innerHTML = `<h2>Revenue per Student</h2>Here we see the revenue in relation to the number of students enrolled. This tells a different story than the previous graph.
+    While New York and other states in the Northeast are on the upper scale of revenue recieved per student, California and Texas are on the lower scale. Other trends stay the same. 
+    Schools gained more revenue per student in later years than earlier. The exception to this is during the years in the early 2010s where most states recieved less revenue per student
+    (aside from Alaska).`;
     floatingDiv.classList.remove('hidden')
     floatingDiv2.classList.add('hidden')
     
@@ -164,9 +191,11 @@ const update1 = (d) => {
 const update4 = (d) => {
   if(chartType==4 && !running)return;
   chartType=4;
-  let variable = "revenue_enroll"
+  let variable = "expend"
 
-  floatingDiv2.innerText= variable;
+  floatingDiv2.innerHTML= `<h2>Total Expenditure</h2>Continuing from money gained to money lost, this graph shows the total expenditure of schools. Compared to the definite increase 
+  in enrollment and revenue over time, the trend here is not as clear. Generally, expendiutre also increased over time, but much more gradually, and with more fluctuation. Similar 
+  to what was seen with revenue, there was a peak in expenditure in the late 2000s (2009-2010), followed by a decrease in expenditure around 2013. `;
   floatingDiv2.classList.remove('hidden')
   floatingDiv.classList.add('hidden')
   updateColorScale(variable)
@@ -176,8 +205,10 @@ const update5 = (d) => {
   if(chartType==5 && !running)return;
   chartType=5;
   let variable = "expenditure_revenue"
-
-  floatingDiv.innerText= variable;
+  floatingDiv.innerHTML= `<h2>Net Profit/Loss</h2>We've seen the revenue and the expenditure of schools. Now it is time to compare the two. Here, the revenue is subtracted from the revenue.
+  Most years, schools spend slightly more than they recieve. No state shows a continued strong trend to over or under spend over a long period of time, with most states which experience major 
+  net loss only suffering for a year. States which experienced major losses include California, Texas, Ohio, Indiana, and North Carolina. Similarly, no state experiences several long periods of 
+  net profit. California, Texas, and New York all had profitable years, with New York being the one state with a consistently positive net. `;
   floatingDiv.classList.remove('hidden')
   floatingDiv2.classList.add('hidden')
   updateColorScale(variable)
@@ -299,8 +330,14 @@ function handleMouseOver (d, i) {
   //d3.select(this).style("fill", "black")
   let tooltip = document.querySelector("#tooltip");
   tooltip.classList.remove("hidden");
-  tooltip.style.top = `${d3.event.y}px`
-  tooltip.style.left = `${d3.event.x}px`;
+  let leftBound = 0;
+  let rightBound = w -600;
+  let topBound=0;
+  let bottomBound = h -400;
+  let top = d3.event.y > bottomBound? bottomBound : d3.event.y;
+
+  tooltip.style.top = `${Math.min(bottomBound, d3.event.y)}px`
+  tooltip.style.left = `${Math.min(rightBound, d3.event.x)}px`;
   updateTooltip(d);
   d3.select(this).style("stroke-width", "2px");
   d3.event.preventDefault();
@@ -323,8 +360,8 @@ const createVisualization = (d) => {
 
   let height = getHeight();
   let width = getWidth();
-  let mapScale = height*2;
-  if(width/height<2) mapScale = width;
+  let mapScale = height+500;
+  if(1.0*width/height<2.5) mapScale = width;
 
     let zoom = d3.zoom().on('zoom', handleZoom)
     // 2. Define a map projection
@@ -348,6 +385,12 @@ const createVisualization = (d) => {
     color2 = d3.scaleQuantize()
     .range(colorRange);
 
+    diverging = d3.scaleQuantize()
+    .range(divergingRange);
+
+    diverging2 = d3.scaleQuantize()
+    .range(divergingRange);
+    
     // 5. Draw the map using SVG path elements
     map = svg.append('g');
 
@@ -369,12 +412,30 @@ const createVisualization = (d) => {
 
     svg.append("g")
     .attr("class", "legendQuant")
-    .attr("transform", `translate(${w-250}, ${h-300})`);
+    .attr("transform", `translate(${w/2}, ${h-150})`);
 
     // see https://github.com/d3/d3-shape#symbols for information about d3 symbol shapes
     legend = d3.legendColor()
-    .shape("path", d3.symbol().type(d3.symbolSquare).size(60)())
-    .shapePadding(10)
+    .labelFormat(d3.format(".2f"))
+    .labels(({i, genLength, generatedLabels, labelDelimiter})=> {
+      console.log(generatedLabels)
+      if (i === 0) {
+        const values = generatedLabels[i].split(` ${labelDelimiter} `)
+        return `${values[0]}`
+      } else if (i === genLength - 1) {
+        const values = generatedLabels[i].split(` ${labelDelimiter} `)
+        return `${values[1]}`
+      }
+      return ""
+    })
+    //if want to continue work on legend
+    .on("cellover", function(d){
+      let index = colorRange.indexOf(d);
+      if(index<0) index = divergingRange.indexOf(d);
+      //console.log(legendDomain[index])
+    })
+    .shapeWidth(30)
+    .orient('horizontal')
     .scale(legendScale);
 
     svg.select(".legendQuant")
