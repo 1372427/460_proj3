@@ -81,7 +81,14 @@ const rowConverter = (d) => {
     expend: parseFloat(d.TOTAL_EXPENDITURE)/inflation[d.YEAR],
     grade_all: parseInt(d.GRADES_ALL_G),
     revenue_enroll : parseFloat(d.TOTAL_REVENUE)/parseFloat(d.ENROLL)/inflation[d.YEAR],
-    expenditure_revenue: (parseFloat(d.TOTAL_EXPENDITURE)-parseFloat(d.TOTAL_REVENUE))/inflation[d.YEAR]
+    expenditure_revenue: (parseFloat(d.TOTAL_EXPENDITURE)-parseFloat(d.TOTAL_REVENUE))/inflation[d.YEAR], 
+    Federal: parseFloat(d.FEDERAL_REVENUE)/inflation[d.YEAR],
+    State: parseFloat(d.STATE_REVENUE)/inflation[d.YEAR],
+    Local: parseFloat(d.LOCAL_REVENUE)/inflation[d.YEAR],
+    Instruction: parseFloat(d.INSTRUCTION_EXPENDITURE)/inflation[d.YEAR],
+    Support: parseFloat(d.SUPPORT_SERVICES_EXPENDITURE)/inflation[d.YEAR],
+    Other: parseFloat(d.OTHER_EXPENDITURE)/inflation[d.YEAR],
+    CapitalOutlay: parseFloat(d.CAPITAL_OUTLAY_EXPENDITURE)/inflation[d.YEAR]
 }
 }
 
@@ -247,37 +254,170 @@ function updateTooltip(d) {
   if(d){
     name = d.properties.name;
   }
+  let varName = chartTypeVar[chartType];
+
+
+  let rStack = ["Federal", "State", "Local"];
+  let eStack = ["Instruction", "Support", "Other", "CapitalOutlay"];
+  let keys = rStack;
+  let stack = false;
+  if(varName === 'revenue'){
+    stack = true;
+  } if(varName === 'expend'){
+    keys = eStack;
+    stack = true;
+  }
+  
   let data = educationData[year][name.toLowerCase()][0];
   let svgData = tooltipData[name.toLowerCase()];
+  let stackedData = d3.stack().keys(keys)(svgData);
   let toolH = 200;
-  let toolW = 400;
+  let toolW = stack? 500 : 400;
   let toolP = 20;
 
   tooltip.querySelector('div').innerHTML = `
   State: ${name}<br/>
   Year: ${year}<br/>
   Students Enrolled: ${data.enroll}<br/>
-  Revenue: ${data.revenue}<br/>
-  Expenditure: ${data.expend}<br/>
+  Total Revenue: ${data.revenue}<br/>
+  Total Expenditure: ${data.expend}<br/>
   `
 
   d3.selectAll('#svg > *').remove();
 
   let toolXScale = d3.scaleLinear()
       .domain([0, Object.keys(inflation).length])
-      .range([3*toolP, toolW-2*toolP]);
+      .range([3*toolP, 400-2*toolP]);
   let toolYScale = d3.scaleLinear()
-      .domain(d3.extent(svgData.map(d=> d[chartTypeVar[chartType]])))
+      .domain(d3.extent(svgData.map(d=> d[varName])))
       .range([toolH-2*toolP, toolP]);
+
+    if(varName !== "expenditure_revenue")
+      toolYScale.domain([0,d3.extent(svgData.map(d=> d[varName]))[1]])
+
+  let area  = d3.area()
+    .x(function(d, i) { return toolXScale(i); })
+    .y0(function(d) { return toolYScale(d[0]); })
+    .y1(function(d) { return toolYScale(d[1]); });
+
+
+
 
   let tooltipSvg = d3.select('#svg')
       .append('svg')
       .attr('height', toolH)
       .attr('width', toolW);
 
+  if(stack){
+    tooltipSvg.selectAll(".area")
+    .data(stackedData)
+    .enter()
+    .append("path")
+    .attr("class", "area")
+    .attr("d", area)
+    .attr("fill", function(d, i) {
+        return colorRange[i+1];
+    })
+    .append("title")  //Make tooltip
+    .text(function(d) {
+        return d.key;
+    });
+
+    let thresholdScale = d3.scaleOrdinal()
+      .domain(keys)
+      .range(keys.map( (d,i) => colorRange[i+1]));
+
+      tooltipSvg.append("g")
+      .attr("class", "legendOrdinal")
+      .attr("transform", `translate(${400-2* toolP},50)`);
+  
+      // see https://github.com/d3/d3-shape#symbols for information about d3 symbol shapes
+      let legendOrdinal = d3.legendColor()
+      .shape("path", d3.symbol().type(d3.symbolSquare).size(60)())
+      .shapePadding(5)
+      .scale(thresholdScale);
+  
+      tooltipSvg.select(".legendOrdinal")
+      .call(legendOrdinal);
+
+
+
+    // Point number tooltip
+    let points = [];
+    keys.forEach((d, i) => {
+      let focus = svg.append("g")
+      .attr("class", "focus")
+      .style("display", "none");
+  
+      focus.append("circle")
+      .attr("r", 5);
+  
+      focus.append("text")
+      .attr("x", 9)
+      .attr("dy", ".35em")
+      .style("font-size",15);
+
+      points.push(focus)
+    })
+
+    tooltipSvg.append("rect")
+    .attr("class", "overlay")
+    .attr("width", toolW)
+    .attr("height", toolH)
+    .on("mouseover", function() {
+        points.forEach((d) => {
+          d.style("display", null);
+        })
+    })
+    .on("mouseout", function() {
+      points.forEach((d) => {
+        d.style("display", "none");
+      })
+    })
+    .on("mousemove", mousemove);
+
+    function mousemove() {
+      let x0 = toolXScale.invert(d3.mouse(this)[0]);
+      let i = d3.bisector(function(d, i2) {
+            return i2;
+        }).left(svgData, x0, 1);
+      console.log(stackedData)
+      let  d0 = stackedData[i - 1],
+          d1 = stackedData[i],
+          d= x0 - (d0.year-1993) > (d1.year-1993) - x0 ? d1 : d0;
+
+        let index = Math.min(Math.floor(x0), 22);
+
+        points.forEach((d) => {
+          console.log(d)
+          let percent = toolYScale()
+          d.attr("transform", "translate(200, 200)");   
+          d.select("text").text(index+"%");
+        })
+        /*
+        var depl=parseFloat(d['Safari'])+parseFloat(d['Opera'])+parseFloat(d['Firefox']);
+        var depl2=parseFloat(d['Safari'])+parseFloat(d['Opera']);
+        var depl3=parseFloat(d['Safari'])+parseFloat(d['Opera'])+parseFloat(d['Firefox'])+parseFloat(d['Chrome']);
+        var depl4=parseFloat(d['Opera']);
+        focus.attr("transform", "translate(" + x(d.date) + "," + (500 - margin.top - margin.bottom)*depl/100+ ")"); 
+        focus2.attr("transform", "translate(" + x(d.date) + "," + (500 - margin.top - margin.bottom)*depl2/100+ ")");   
+        focus3.attr("transform", "translate(" + x(d.date) + "," + (500 - margin.top - margin.bottom)*depl3/100+ ")");   
+        focus4.attr("transform", "translate(" + x(d.date) + "," + (500 - margin.top - margin.bottom)*depl4/100+ ")");   
+        focus.select("text").text(d3.round(100-depl, 1)+"%");
+        focus2.select("text").text(d3.round(100-depl2, 1)+"%");
+        focus3.select("text").text(d3.round(100-depl3, 1)+"%");
+        focus4.select("text").text(d3.round(100-depl4, 1)+"%");
+        */
+    }
+
+
+  }
+      
+
+
   let line = d3.line()
       .x((d,i) => toolXScale(i))
-      .y(d => toolYScale(d[chartTypeVar[chartType]]));
+      .y(d => toolYScale(d[varName]));
 
   let xAxis = d3
       .axisBottom(toolXScale)
@@ -310,15 +450,15 @@ function updateTooltip(d) {
       .attr('x', -toolH/2)
       .attr('y', toolP)
       .attr('text-anchor', 'middle')
-      .text(chartTypeVar[chartType])
+      .text(chartTypeVar[chartType].toUpperCase())
     
   tooltipSvg.append('text')
       .classed('axis-label', true)
       .attr('x', toolW/2)
       .attr('y', toolH-toolP/2)
       .attr('text-anchor', 'middle')
-      .text('Year')
-
+      .text('Year'.toUpperCase())
+      
 
   currTooltipState = name;
 }

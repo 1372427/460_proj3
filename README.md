@@ -77,6 +77,8 @@ https://stackoverflow.com/questions/22452112/nvd3-clear-svg-before-loading-new-c
 * This visual was based off of a New York Time's article which had a similar basis: 
 https://www.nytimes.com/interactive/2018/11/07/us/politics/how-democrats-took-the-house.html
 
+* The following site was the base for the interaction on the stacked area charts
+https://bl.ocks.org/fabiomainardi/3976176cb36e718a608f
 
 - Use legend with values?  Scale w min/max and rollover for individual values, start at 0(?)
 - Sizing
